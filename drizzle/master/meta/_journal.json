@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786863651439,
+      "tag": "0000_empty_umar",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786864570401,
+      "tag": "0001_typical_typhoid_mary",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786868114127,
+      "tag": "0002_known_nextwave",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786868425078,
+      "tag": "0003_bitter_the_fallen",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1786885495914,
+      "tag": "0004_tricky_phantom_reporter",
+      "breakpoints": true
+    }
+  ]
+}

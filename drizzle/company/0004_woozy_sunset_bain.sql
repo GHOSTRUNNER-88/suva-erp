@@ -1,0 +1,1 @@
+ALTER TABLE `organizations` ADD `enabled_modules` text;

@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786864585054,
+      "tag": "0000_glorious_vance_astro",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786871300371,
+      "tag": "0001_rainy_adam_warlock",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786872124969,
+      "tag": "0002_petite_elektra",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786884146688,
+      "tag": "0003_previous_forge",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1786885511551,
+      "tag": "0004_woozy_sunset_bain",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1786888782569,
+      "tag": "0005_famous_shooting_star",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786900349380,
+      "tag": "0006_condemned_ezekiel",
+      "breakpoints": true
+    }
+  ]
+}

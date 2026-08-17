@@ -1,0 +1,1 @@
+ALTER TABLE `organization_users` ADD `module_permissions` text;

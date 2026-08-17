@@ -1,0 +1,76 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786863654436,
+      "tag": "0000_curved_kronos",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786869010816,
+      "tag": "0001_simple_nebula",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786898579629,
+      "tag": "0002_curious_tag",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786900082203,
+      "tag": "0003_flippant_brood",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1786941218350,
+      "tag": "0004_lowly_iceman",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1786947774868,
+      "tag": "0005_tired_junta",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786950874027,
+      "tag": "0006_fantastic_wildside",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1786959090591,
+      "tag": "0007_dusty_franklin_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1786960164657,
+      "tag": "0008_sparkling_stature",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1786976232278,
+      "tag": "0009_tiny_puff_adder",
+      "breakpoints": true
+    }
+  ]
+}

@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# user-uploaded files (bank QR codes, etc.) — server-local, not source
+/public/uploads/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

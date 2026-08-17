@@ -1,0 +1,1 @@
+ALTER TABLE `companies` ADD `purchased_modules` text;
