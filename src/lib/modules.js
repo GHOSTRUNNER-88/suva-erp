@@ -30,9 +30,9 @@ import {
  * them (legacy's `masters` nav category bundles Items + Inventory too).
  */
 export const MODULE_CATALOG = [
-  { key: "sales", labelKey: "sales", icon: ReceiptText, built: false, default: true },
-  { key: "purchase", labelKey: "purchase", icon: FileText, built: false, default: true },
-  { key: "finance", labelKey: "finance", icon: CircleDollarSign, built: false, default: true },
+  { key: "sales", labelKey: "sales", icon: ReceiptText, built: true, default: true },
+  { key: "purchase", labelKey: "purchase", icon: FileText, built: true, default: true },
+  { key: "finance", labelKey: "finance", icon: CircleDollarSign, built: true, default: true },
   { key: "cashBank", labelKey: "cashBank", icon: Landmark, built: true, default: true },
   { key: "parties", labelKey: "parties", icon: ShieldCheck, built: true, default: true },
   { key: "items", labelKey: "items", icon: Package, built: true, default: true },

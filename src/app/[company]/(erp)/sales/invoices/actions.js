@@ -46,9 +46,18 @@ import { z } from "zod";
 
 const FIXED_PREFIX = "INV";
 
+// Empty-string/undefined/null all normalize to null for an optional foreign
+// key select (CreatableSelect's "not selected" state is ""), then a real id
+// still has to be a positive integer. Plain `z.coerce.number()...nullable()`
+// does NOT do this safely: z.coerce.number() coerces "" to 0 before
+// `.nullable()` ever gets a chance to see the empty string, and 0 then fails
+// `.positive()` — verified against this project's installed zod (v4).
+const optionalId = () =>
+  z.preprocess((value) => (value === "" || value == null ? null : value), z.coerce.number().int().positive().nullable());
+
 const lineItemSchema = z.object({
   itemId: z.coerce.number().int().positive(),
-  variantId: z.coerce.number().int().positive().nullable().optional(),
+  variantId: optionalId(),
   unitId: z.coerce.number().int().positive(),
   quantity: z.coerce.number(),
   rate: z.coerce.number().min(0),
@@ -64,7 +73,7 @@ const salesInvoiceSchema = z
     billingAddress: z.string().trim().max(2000).optional().or(z.literal("")),
     panNumber: z.string().trim().max(50).optional().or(z.literal("")),
     warehouseId: z.coerce.number().int().positive("warehouseRequired"),
-    bankAccountId: z.coerce.number().int().positive().nullable().optional(),
+    bankAccountId: optionalId(),
     discType: z.enum(["percent", "amount"]).default("percent"),
     discValue: z.coerce.number().min(0, "somethingWentWrong").default(0),
     isVatApplicable: z.boolean().default(false),
@@ -207,6 +216,32 @@ export async function getDocumentDefaults(companySlug) {
   return {
     vatEnabled: row?.defaultVatEnabled === 1,
     vatPercent: row ? Number(row.defaultVatPercent) : 13,
+  };
+}
+
+// Single combined lookup for the redesigned create/edit form (see
+// invoice-form.jsx) — composes the existing individual list*/getDocumentDefaults
+// lookups above rather than re-querying, matching the shape
+// purchase/bills/actions.js's getPurchaseBillFormData already uses.
+export async function getSalesInvoiceFormData(companySlug) {
+  const context = await getAuthenticatedAppContext(companySlug);
+  const db = canAccessSales(context) ? getOrganizationDb(context.session.organizationDbName) : null;
+  const [partyRows, itemRows, warehouseRows, bankAccountRows, defaults, unitRows] = await Promise.all([
+    listPartiesForInvoices(companySlug),
+    listItemsForInvoices(companySlug),
+    listWarehousesForInvoices(companySlug),
+    listBankAccountsForInvoices(companySlug),
+    getDocumentDefaults(companySlug),
+    db ? db.select({ id: units.id, name: units.name, code: units.code }).from(units) : [],
+  ]);
+  return {
+    parties: partyRows,
+    items: itemRows,
+    warehouses: warehouseRows,
+    bankAccounts: bankAccountRows,
+    units: unitRows,
+    defaultVatEnabled: defaults.vatEnabled,
+    defaultVatPercent: defaults.vatPercent,
   };
 }
 

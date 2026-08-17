@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Check, Loader2, Plus, Trash2 } from "lucide-react";
@@ -63,10 +63,11 @@ function linesFromInitialValues(initialLines, nextKey) {
 export default function DeliveryChallanForm({ companySlug, formData, challan, lines, initialValues }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const rowKeyCounter = useRef(0);
+  // Not a ref+counter: React flags reading a ref during render, and this
+  // needs to run inside the lazy useState initializer below (which IS
+  // render). A plain random id has no such restriction.
   function nextRowKey() {
-    rowKeyCounter.current += 1;
-    return `line-${rowKeyCounter.current}`;
+    return `line-${crypto.randomUUID()}`;
   }
 
   const locked = challan?.stockDeducted === 1;

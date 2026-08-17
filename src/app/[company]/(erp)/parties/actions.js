@@ -14,13 +14,22 @@ import { z } from "zod";
  * ../../../db/schema/organization.js for what was deliberately dropped
  * (and why) and what stays renamed ("party level" -> "party group").
  */
+// Empty-string/undefined/null all normalize to null for an optional foreign
+// key select (CreatableSelect's "not selected" state is ""), then a real id
+// still has to be a positive integer. Plain `z.coerce.number()...nullable()`
+// does NOT do this safely: z.coerce.number() coerces "" to 0 before
+// `.nullable()` ever gets a chance to see the empty string, and 0 then fails
+// `.positive()` — verified against this project's installed zod (v4).
+const optionalId = () =>
+  z.preprocess((value) => (value === "" || value == null ? null : value), z.coerce.number().int().positive().nullable());
+
 const partySchema = z.object({
   name: z.string().trim().min(1, "partyNameRequired").max(225, "partyNameTooLong"),
   type: z.enum(["Customer", "Supplier", "Both"]).default("Customer"),
   phoneNumber: z.string().trim().max(20, "phoneTooLong").optional().or(z.literal("")),
   address: z.string().trim().max(2000).optional().or(z.literal("")),
   panNumber: z.string().trim().max(50).optional().or(z.literal("")),
-  partyGroupId: z.coerce.number().int().positive().nullable().optional(),
+  partyGroupId: optionalId(),
   openingBalance: z.coerce.number().min(0, "somethingWentWrong").default(0),
   openingBalanceType: z.enum(["Dr", "Cr"]).default("Dr"),
 });

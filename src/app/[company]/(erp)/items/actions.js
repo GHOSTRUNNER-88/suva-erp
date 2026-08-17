@@ -25,17 +25,26 @@ import { z } from "zod";
  * are the two exceptions — narrowed ports of item_unit_conversions/
  * item_party_level_prices (see that file's comment for why).
  */
+// Empty-string/undefined/null all normalize to null for an optional foreign
+// key select (CreatableSelect's "not selected" state is ""), then a real id
+// still has to be a positive integer. Plain `z.coerce.number()...nullable()`
+// does NOT do this safely: z.coerce.number() coerces "" to 0 before
+// `.nullable()` ever gets a chance to see the empty string, and 0 then fails
+// `.positive()` — verified against this project's installed zod (v4).
+const optionalId = () =>
+  z.preprocess((value) => (value === "" || value == null ? null : value), z.coerce.number().int().positive().nullable());
+
 const itemSchema = z
   .object({
     name: z.string().trim().min(1, "itemNameRequired").max(225, "itemNameTooLong"),
-    categoryId: z.coerce.number().int().positive().nullable().optional(),
+    categoryId: optionalId(),
     barcodeInput: z.boolean().default(false),
     barcodeValue: z.string().trim().max(225).optional().or(z.literal("")),
     primaryUnitId: z.coerce.number().int().positive("primaryUnitRequired"),
-    secondaryUnitId: z.coerce.number().int().positive().nullable().optional(),
+    secondaryUnitId: optionalId(),
     // How many primaryUnit per 1 secondaryUnit — only required/meaningful
     // once a secondary unit is actually set, see superRefine below.
-    conversionFactor: z.coerce.number().int().positive().nullable().optional(),
+    conversionFactor: optionalId(),
     purchasePrice: z.coerce.number().min(0, "somethingWentWrong").default(0),
     sellingPrice: z.coerce.number().min(0, "somethingWentWrong").default(0),
     // Sparse — only entries the caller actually wants to override; entries

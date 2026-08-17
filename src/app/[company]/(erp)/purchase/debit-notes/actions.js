@@ -53,9 +53,18 @@ function canAccessPurchase(context) {
   return context.accessibleModules.includes("purchase");
 }
 
+// Empty-string/undefined/null all normalize to null for an optional foreign
+// key select (CreatableSelect's "not selected" state is ""), then a real id
+// still has to be a positive integer. Plain `z.coerce.number()...nullable()`
+// does NOT do this safely: z.coerce.number() coerces "" to 0 before
+// `.nullable()` ever gets a chance to see the empty string, and 0 then fails
+// `.positive()` — verified against this project's installed zod (v4).
+const optionalId = () =>
+  z.preprocess((value) => (value === "" || value == null ? null : value), z.coerce.number().int().positive().nullable());
+
 const lineSchema = z.object({
   itemId: z.coerce.number().int().positive("itemRequired"),
-  variantId: z.coerce.number().int().positive().nullable().optional(),
+  variantId: optionalId(),
   unitId: z.coerce.number().int().positive("unitRequired"),
   quantity: z.coerce.number().positive("quantityRequired"),
   rate: z.coerce.number().min(0, "somethingWentWrong").default(0),
@@ -77,7 +86,7 @@ const debitNoteSchema = z
     vatPercent: z.coerce.number().min(0).max(100).default(0),
     isRefunded: z.boolean().default(false),
     refundAmount: z.coerce.number().min(0, "somethingWentWrong").default(0),
-    bankAccountId: z.coerce.number().int().positive().nullable().optional(),
+    bankAccountId: optionalId(),
     notes: z.string().trim().max(2000).optional().or(z.literal("")),
     status: z.enum(["draft", "completed", "cancelled"]).default("completed"),
     lines: z.array(lineSchema).min(1, "atLeastOneLineRequired"),

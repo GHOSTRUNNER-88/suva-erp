@@ -5,6 +5,7 @@ import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
   attributeValues,
+  attributes,
   bankAccounts,
   bankTransactions,
   creditNoteDetails,
@@ -50,9 +51,18 @@ import { z } from "zod";
 
 const FIXED_PREFIX = "CN";
 
+// Empty-string/undefined/null all normalize to null for an optional foreign
+// key select (CreatableSelect's "not selected" state is ""), then a real id
+// still has to be a positive integer. Plain `z.coerce.number()...nullable()`
+// does NOT do this safely: z.coerce.number() coerces "" to 0 before
+// `.nullable()` ever gets a chance to see the empty string, and 0 then fails
+// `.positive()` — verified against this project's installed zod (v4).
+const optionalId = () =>
+  z.preprocess((value) => (value === "" || value == null ? null : value), z.coerce.number().int().positive().nullable());
+
 const lineItemSchema = z.object({
   itemId: z.coerce.number().int().positive(),
-  variantId: z.coerce.number().int().positive().nullable().optional(),
+  variantId: optionalId(),
   unitId: z.coerce.number().int().positive(),
   quantity: z.coerce.number(),
   rate: z.coerce.number().min(0),
@@ -68,8 +78,8 @@ const creditNoteSchema = z
     referenceNo: z.string().trim().max(100).optional().or(z.literal("")),
     billingName: z.string().trim().max(225).optional().or(z.literal("")),
     billingAddress: z.string().trim().max(2000).optional().or(z.literal("")),
-    warehouseId: z.coerce.number().int().positive().nullable().optional(),
-    bankAccountId: z.coerce.number().int().positive().nullable().optional(),
+    warehouseId: optionalId(),
+    bankAccountId: optionalId(),
     discType: z.enum(["percent", "amount"]).default("percent"),
     discValue: z.coerce.number().min(0, "somethingWentWrong").default(0),
     isVatApplicable: z.boolean().default(false),
@@ -209,6 +219,59 @@ export async function getDocumentDefaults(companySlug) {
   return {
     vatEnabled: row?.defaultVatEnabled === 1,
     vatPercent: row ? Number(row.defaultVatPercent) : 13,
+  };
+}
+
+// Single combined lookup for the create/edit form — same shape as
+// purchase/debit-notes/actions.js's getDebitNoteFormData (its sales-side
+// mirror), just querying items.sellingPrice instead of purchasePrice and
+// parties of type Customer/Both instead of Supplier/Both.
+export async function getCreditNoteFormData(companySlug) {
+  const context = await getAuthenticatedAppContext(companySlug);
+  if (!canAccessSales(context)) return null;
+  const db = getOrganizationDb(context.session.organizationDbName);
+  const secondaryUnits = alias(units, "secondary_units_cn_form");
+
+  const [partyRows, warehouseRows, itemRows, unitRows, attributeValueRows, bankAccountRows, [settingsRow]] = await Promise.all([
+    db
+      .select({ id: parties.id, name: parties.name, type: parties.type, address: parties.address, panNumber: parties.panNumber })
+      .from(parties)
+      .where(ne(parties.type, "Supplier")),
+    db.select({ id: warehouses.id, name: warehouses.name }).from(warehouses),
+    db
+      .select({
+        id: items.id,
+        name: items.name,
+        primaryUnitId: items.primaryUnitId,
+        primaryUnitCode: units.code,
+        secondaryUnitId: items.secondaryUnitId,
+        secondaryUnitCode: secondaryUnits.code,
+        sellingPrice: items.sellingPrice,
+      })
+      .from(items)
+      .innerJoin(units, eq(items.primaryUnitId, units.id))
+      .leftJoin(secondaryUnits, eq(items.secondaryUnitId, secondaryUnits.id)),
+    db.select({ id: units.id, name: units.name, code: units.code }).from(units),
+    db
+      .select({ id: attributeValues.id, name: attributeValues.name, attributeName: attributes.name })
+      .from(attributeValues)
+      .innerJoin(attributes, eq(attributeValues.attrId, attributes.id)),
+    db
+      .select({ id: bankAccounts.id, bankName: bankAccounts.bankName, displayName: bankAccounts.displayName })
+      .from(bankAccounts)
+      .where(eq(bankAccounts.status, "active")),
+    db.select({ defaultVatEnabled: settings.defaultVatEnabled, defaultVatPercent: settings.defaultVatPercent }).from(settings).limit(1),
+  ]);
+
+  return {
+    parties: partyRows,
+    warehouses: warehouseRows,
+    items: itemRows,
+    units: unitRows,
+    attributeValues: attributeValueRows,
+    bankAccounts: bankAccountRows,
+    defaultVatEnabled: settingsRow?.defaultVatEnabled === 1,
+    defaultVatPercent: Number(settingsRow?.defaultVatPercent ?? 13),
   };
 }
 

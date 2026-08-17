@@ -26,27 +26,42 @@ verified via `next build`, `eslint`, and `curl` against a real minted
 session (see §7) — never by actually clicking through it. Say so if you
 pick this up and still can't verify visually.
 
-**New session, 2026-08-17 (continued):** building out the full Sales /
+**New session, 2026-08-17 (continued):** built out the full Sales /
 Purchase / Finance transactional core — Purchase Orders, Purchase Bills,
 Debit Notes, Expense Categories + Expenses, Sales Orders, Sales Quotations,
 Sales Invoices, Credit Notes, Delivery Challans, Payment In/Out, Cheque
-Register, Payments Due. **IN PROGRESS as of this note** — schema for all 10
-modules is written, migrated, and verified live against all 6 organization
-databases (§4e). Shared infra built: `lib/money.js` (VAT/discount
-calculator), `lib/document-numbering.js` (the MAX+1 numbering pattern),
-`lib/inventory.js` (extracted the inventory-mutation core out of
-`items/inventory/actions.js` so it's importable by every new module —
-see §4e for why the old private helper couldn't just be exported),
-`lib/party-ledger.js` (signed balance recalculation, ported from
-`Party.php`'s `recalculate_party_balance`/`party_closing_balance`, verified
-in full). Five background agents were dispatched in parallel to build the
+Register, Payments Due. **DONE, integrated, and live-verified** — see §4e
+for the full account. Schema for all 10 modules is written, migrated, and
+verified live against all 6 organization databases. Shared infra built:
+`lib/money.js` (VAT/discount calculator), `lib/document-numbering.js` (the
+MAX+1 numbering pattern), `lib/inventory.js` (extracted the
+inventory-mutation core out of `items/inventory/actions.js` so it's
+importable by every new module — see §4e for why the old private helper
+couldn't just be exported), `lib/party-ledger.js` (signed balance
+recalculation, ported from `Party.php`'s
+`recalculate_party_balance`/`party_closing_balance`, verified in full).
+`i18n-resources.js` grew from 692 to 1022 keys (EN/NE parity confirmed, zero
+duplicates), `lib/modules.js`'s `built` flags flipped to `true` for
+sales/purchase/finance, and every new Organization DB now seeds the 10
+legacy default expense categories at creation (both the signup-time default
+org and any later-created org). A live end-to-end test (real minted
+session, real DB writes, then fully cleaned up) created a Purchase Bill and
+a Sales Invoice back to back and hand-verified every number: document
+numbering (`TW-0001`, correctly picked up the test warehouse's prefix),
+inventory math (+10 on the bill, -3 on the invoice with a negative-stock
+warning firing correctly when the stock briefly went negative earlier in
+the run, then no warning once stock existed), VAT/discount math (450
+subtotal → 10% disc → 405 → 13% VAT → 457.65, matched exactly), and the
+party ledger recompute (504592.65 − 1000 + 457.65 = 504050.30, matched
+exactly). Five background agents were dispatched in parallel to build the
 actual module UIs/actions on top of that shared foundation (mirroring §8's
-lessons from the previous multi-agent run) — if you're reading this and
-those agents haven't been integrated yet (i18n keys not merged into
-`i18n-resources.js`, `lib/modules.js`'s `built` flags still `false` for
-sales/purchase/finance, `setup/actions.js` not wired to seed default expense
-categories), that integration pass is the very next thing to do. Full
-write-up once that lands.
+lessons from the previous multi-agent run) — two of the five hit a
+session/API quota wall partway through (Sales Invoices+Credit Notes got cut
+off right after finishing Invoices; Finance got cut off after finishing the
+Payments logic but before any of the four view files existed). Both gaps
+(Credit Notes' view layer, and all four Finance page/view files) were
+finished directly afterward rather than by re-dispatching agents into the
+same wall — see §4e for exactly what was salvaged vs. rebuilt.
 
 ## 1. What exists right now
 
@@ -469,7 +484,7 @@ read/write `settings.negativeStockAction` in the org DB, and a new
 Allow with warning / Block) matching the edit-in-place pattern used
 elsewhere in that settings page.
 
-## 4e. Sales / Purchase / Finance transactional core — schema + shared libs done, modules being built
+## 4e. Sales / Purchase / Finance transactional core — done, live-verified
 
 Ten new tables' worth of Drizzle schema landed in one shot in
 `db/schema/organization.js` (migration `0009_tiny_puff_adder.sql`, migrated
@@ -553,17 +568,87 @@ owning a disjoint set of route folders (no shared-file edits — i18n keys
 were collected to scratch JSON files instead of each agent editing
 `i18n-resources.js` directly, learning from §8's collision lesson):
 Purchase (orders/bills/debit-notes), Expense (categories/expenses, plus a
-`seedDefaultExpenseCategories` export not yet wired into
-`setup/actions.js`), Sales-workflow (orders/quotations/delivery-challans),
-Sales-money (invoices/credit-notes), Finance (payment-in/out/cheque-
-register/payments-due — the one cluster whose legacy behavior wasn't fully
-pre-verified before dispatch, so that agent was told to read
-`Payment.php`/`Cheque.php` itself first). **If you're reading this before
-the integration pass happened**: check whether `i18n-resources.js` has
-sales/purchase/finance keys yet, whether `lib/modules.js`'s `built` flags
-are still `false` for those three modules, and whether
-`setup/actions.js` calls `seedDefaultExpenseCategories` — if not, that
-integration is the next task, not a fresh build.
+`seedDefaultExpenseCategories` export), Sales-workflow
+(orders/quotations/delivery-challans), Sales-money (invoices/credit-notes),
+Finance (payment-in/out/cheque-register/payments-due — the one cluster
+whose legacy behavior wasn't fully pre-verified before dispatch, so that
+agent was told to read `Payment.php`/`Cheque.php` itself first). Purchase,
+Expense, and Sales-workflow finished cleanly. Two hit the session/API quota
+wall mid-task (see the intro note above) — here's exactly what landed vs.
+what got finished directly afterward:
+- **Sales-money**: finished Sales Invoices completely (verified in the live
+  test above) before the wall hit. Credit Notes' `actions.js` was also
+  already complete (608 lines, full create/update/cancel with the
+  sales_return-vs-price_protection inventory branching) — only its view
+  layer (`page.js`, `credit-notes-view.jsx`, `credit-note-form.jsx`,
+  `[creditNote]/`) was missing, built directly afterward mirroring
+  `purchase/debit-notes`' equivalent files (the closest structural sibling —
+  same header+type+lines+refund shape) plus one added helper,
+  `getCreditNoteFormData`, mirroring `getDebitNoteFormData`'s shape.
+- **Finance**: `payments-shared/actions.js` was already complete and
+  thorough (529 lines — receipt numbering, manual allocation, due-amount
+  resync via `db.transaction`, bank posting) with a header comment
+  documenting exactly what it found in `Payment.php` (verified: allocation
+  is fully manual, every payment posts to the bank ledger immediately, no
+  deferral by method). Everything downstream of that — `payment-in/`,
+  `payment-out/`, `cheque-register/` (including reading `Cheque.php` myself
+  to confirm it's a fully standalone tracker with no bank-ledger side
+  effects), and `payments-due/` — was built directly afterward.
+
+Three real bugs were caught and fixed while integrating this batch:
+1. Three sibling forms (`sales/orders/order-form.jsx`,
+   `sales/quotations/quotation-form.jsx`,
+   `sales/delivery-challans/challan-form.jsx`) used a `useRef` counter read
+   inside a lazy `useState(() => ...)` initializer to generate line-item
+   keys — React's compiler-era lint (`react-hooks/refs`) correctly flags
+   reading a ref during render, including inside a lazy initializer. Fixed
+   by dropping the ref entirely in favor of `crypto.randomUUID()` (no
+   counter needed, safe to call from anywhere).
+2. `finance/payments-shared/payment-form.jsx` called `setState` directly in
+   an effect body (`setLoadingDocs(true)` before the fetch) — flagged by
+   `react-hooks/set-state-in-effect`. Fixed by moving that `setState` into
+   the party `<select>`'s `onChange` handler (a real event handler) and
+   initializing `loadingDocs` from a lazy `useState` for the edit-mode case
+   where the fetch fires on mount.
+3. My own first draft of `getCreditNoteFormData` had a copy-paste mistake
+   (joined the wrong table for the attribute-value lookup) — caught by
+   `npx eslint` immediately after writing it, fixed before it ever ran.
+
+**i18n merge**: 249 distinct `t("...")` calls were used across every new
+JSX file, plus another 105 dynamic `message`/`formError`/zod-validation
+keys pulled out of the `actions.js` files (those don't show up as literal
+`t("...")` calls — they're returned as strings and interpolated later, e.g.
+`t(result.message)`). Cross-referenced against the two agent-produced
+scratch translation files (Expense, Finance — both complete and used
+as-is) plus fresh EN/Nepali translations written for the rest (Purchase,
+Sales, and the message/validation keys). Final count: 1022 keys, EN/NE
+parity confirmed programmatically (`Object.keys` diff, zero keys unique to
+either side), zero duplicates (confirmed by clean `eslint` on the file,
+which includes `no-dupe-keys`).
+
+**Live verification**: `npm run build` and `eslint` clean across every new
+file. A real minted session (see §7's pattern) hit all 14 new list pages —
+all 200s, no 500s — then exercised the highest-risk write path directly:
+created a Purchase Bill (10 units @ 100, no discount/VAT) then a Sales
+Invoice (3 units @ 150, 10% header discount, 13% VAT) against the same
+test item/party, and hand-verified every resulting number against the real
+DB state (document numbering, inventory increase then decrease with
+negative-stock-warning gating firing correctly, VAT/discount math to the
+paisa, and the party ledger's multi-document signed recompute) — see the
+intro note above for the exact figures. All temp routes and test
+fixtures/rows were deleted and the party's balance restored afterward;
+`git status`-equivalent (a fresh `SELECT COUNT(*)` sweep) confirmed zero
+residue.
+
+**One known architectural wart, not worth fixing now**:
+`seedDefaultExpenseCategories` (in
+`purchase/expense-categories/actions.js`) takes a raw `db` handle with no
+auth check, same shape as the `lib/*.js` helpers — but it lives in a
+`"use server"` file, so it's technically exported as a client-callable
+action. Not actually exploitable (a client has no way to supply a real
+Drizzle `db` connection as an argument), but it breaks the pattern
+established by `lib/inventory.js`/`lib/party-ledger.js`. Worth moving into
+a plain module if you're back in this area anyway; not urgent.
 
 ## 5. Known gaps / explicitly flagged, not yet done
 

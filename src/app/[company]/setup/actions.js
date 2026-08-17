@@ -9,6 +9,7 @@ import { createSession } from "@/lib/auth/session";
 import { getCompanyDb, getOrganizationDb } from "@/lib/db";
 import { organizationSchema } from "@/lib/organization/schema";
 import { translateToNepali } from "@/lib/translate-text";
+import { seedDefaultExpenseCategories } from "@/app/[company]/(erp)/purchase/expense-categories/actions";
 
 /**
  * One-time completion of the Company's default (main) Organization — the
@@ -91,6 +92,12 @@ export async function completeDefaultOrganizationAction(companySlug, input) {
       fiscalYearStart: data.accountingStartDate,
       defaultVatEnabled: data.isVatRegistered ? 1 : 0,
     });
+
+  // Every Organization DB starts with the 10 legacy default expense
+  // categories (see purchase/expense-categories/actions.js) — mirrors
+  // createOrganizationAction's identical seeding call. No-ops if categories
+  // already exist (relevant if this ever runs twice on the same DB).
+  await seedDefaultExpenseCategories(organizationDb);
 
   await createSession({ ...context.session, needsOrganizationSetup: false });
 

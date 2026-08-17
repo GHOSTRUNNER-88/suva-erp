@@ -17,6 +17,7 @@ import { DEFAULT_MODULE_KEYS, parseModuleList } from "@/lib/modules";
 import { ACCOUNTING_FEATURES, organizationSchema } from "@/lib/organization/schema";
 import { translateToNepali } from "@/lib/translate-text";
 import { z } from "zod";
+import { seedDefaultExpenseCategories } from "@/app/[company]/(erp)/purchase/expense-categories/actions";
 
 const newUserSchema = z.object({
   firstName: z.string().trim().min(1, "firstNameRequired").max(100, "firstNameTooLong"),
@@ -302,6 +303,10 @@ export async function createOrganizationAction(companySlug, input) {
     defaultVatEnabled: data.isVatRegistered ? 1 : 0,
     currencySymbol: data.features.includes("multiCurrency") ? "NPR" : "NPR",
   });
+  // Every new Organization DB starts with the 10 legacy default expense
+  // categories (see purchase/expense-categories/actions.js) — mirrors
+  // legacy's INSERT IGNORE seed. No-ops if categories already exist.
+  await seedDefaultExpenseCategories(organizationDb);
 
   await companyDb
     .update(users)

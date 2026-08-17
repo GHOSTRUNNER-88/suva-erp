@@ -37,9 +37,18 @@ function canAccessPurchase(context) {
   return context.accessibleModules.includes("purchase");
 }
 
+// Empty-string/undefined/null all normalize to null for an optional foreign
+// key select (CreatableSelect's "not selected" state is ""), then a real id
+// still has to be a positive integer. Plain `z.coerce.number()...nullable()`
+// does NOT do this safely: z.coerce.number() coerces "" to 0 before
+// `.nullable()` ever gets a chance to see the empty string, and 0 then fails
+// `.positive()` — verified against this project's installed zod (v4).
+const optionalId = () =>
+  z.preprocess((value) => (value === "" || value == null ? null : value), z.coerce.number().int().positive().nullable());
+
 const lineSchema = z.object({
   itemId: z.coerce.number().int().positive("itemRequired"),
-  variantId: z.coerce.number().int().positive().nullable().optional(),
+  variantId: optionalId(),
   unitId: z.coerce.number().int().positive("unitRequired"),
   quantity: z.coerce.number().positive("quantityRequired"),
   rate: z.coerce.number().min(0, "somethingWentWrong").default(0),
@@ -55,7 +64,7 @@ const orderSchema = z.object({
   supplierName: z.string().trim().max(225).optional().or(z.literal("")),
   supplierAddress: z.string().trim().max(2000).optional().or(z.literal("")),
   panNumber: z.string().trim().max(50).optional().or(z.literal("")),
-  warehouseId: z.coerce.number().int().positive().nullable().optional(),
+  warehouseId: optionalId(),
   discType: z.enum(["percent", "amount"]).default("percent"),
   discValue: z.coerce.number().min(0, "somethingWentWrong").default(0),
   isVatApplicable: z.boolean().default(false),

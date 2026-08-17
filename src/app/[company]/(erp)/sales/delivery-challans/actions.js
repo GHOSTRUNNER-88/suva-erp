@@ -58,10 +58,19 @@ function canAccessSales(context) {
   return context.accessibleModules.includes("sales");
 }
 
+// Empty-string/undefined/null all normalize to null for an optional foreign
+// key select (CreatableSelect's "not selected" state is ""), then a real id
+// still has to be a positive integer. Plain `z.coerce.number()...nullable()`
+// does NOT do this safely: z.coerce.number() coerces "" to 0 before
+// `.nullable()` ever gets a chance to see the empty string, and 0 then fails
+// `.positive()` — verified against this project's installed zod (v4).
+const optionalId = () =>
+  z.preprocess((value) => (value === "" || value == null ? null : value), z.coerce.number().int().positive().nullable());
+
 const lineSchema = z.object({
   itemId: z.coerce.number().int().positive("itemRequired"),
-  variantId: z.coerce.number().int().positive().nullable().optional(),
-  unitId: z.coerce.number().int().positive().nullable().optional(),
+  variantId: optionalId(),
+  unitId: optionalId(),
   quantity: z.coerce.number().positive("quantityRequired"),
   itemNote: z.string().trim().max(255).optional().or(z.literal("")),
 });
@@ -70,9 +79,9 @@ const challanSchema = z
   .object({
     challanDate: z.string().trim().min(1, "challanDateRequired"),
     partyId: z.coerce.number().int().positive("partyRequired"),
-    warehouseId: z.coerce.number().int().positive().nullable().optional(),
+    warehouseId: optionalId(),
     sourceType: z.enum(["manual", "sale", "purchase"]).default("manual"),
-    sourceId: z.coerce.number().int().positive().nullable().optional(),
+    sourceId: optionalId(),
     notes: z.string().trim().max(2000).optional().or(z.literal("")),
     // "cancelled" is deliberately not a selectable value here — cancelling
     // has stock-reversal side effects and only happens through the

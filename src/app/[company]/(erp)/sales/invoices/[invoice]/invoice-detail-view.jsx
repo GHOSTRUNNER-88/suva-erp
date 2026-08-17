@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Ban, Loader2, Pencil, Printer, Receipt } from "lucide-react";
+import { Ban, Loader2, Pencil, Printer, Receipt, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet } from "@/components/ui/sheet";
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { InvoiceForm, InvoiceStatusBadge, formatAmount, formatDate } from "../sales-invoices-view";
+import { InvoiceStatusBadge, formatAmount, formatDate } from "../sales-invoices-view";
+import InvoiceForm from "../invoice-form";
 import { cancelSalesInvoiceAction } from "../actions";
 
 const LINE_GRID = "grid grid-cols-[1fr_90px_70px_110px_100px_120px] gap-3";
@@ -24,16 +24,15 @@ function DetailField({ label, value }) {
 }
 
 /**
- * Full invoice header + line items + Edit/Cancel/Print actions — mirrors
- * bank-account-ledger-view.jsx's shape (standalone route, header card +
- * table). Editing reuses the shared InvoiceForm from sales-invoices-view.jsx
- * (same cross-file reuse as BankAccountForm there) since this page already
- * has the full line-item detail the list view never loads.
+ * Full invoice header + line items + Edit/Cancel/Print actions. Editing
+ * inline-swaps to the shared ../invoice-form.jsx (mode="edit") rather than
+ * a Sheet — matches purchase/bills' bill-detail-view.jsx pattern, needed
+ * for the width the redesigned spreadsheet-style line-item table wants.
  */
-export function InvoiceDetailView({ companySlug, invoice, lines, parties, items, warehouses, bankAccounts, defaults }) {
+export function InvoiceDetailView({ companySlug, invoice, lines, formData }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
   async function handleCancel() {
@@ -54,6 +53,21 @@ export function InvoiceDetailView({ companySlug, invoice, lines, parties, items,
       ? `${invoice.bankName} — ${invoice.bankDisplayName}`
       : invoice.bankName
     : null;
+
+  if (editing) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold tracking-tight">{t("editSalesInvoice")}</h1>
+          <Button type="button" variant="outline" onClick={() => setEditing(false)}>
+            <X className="h-4 w-4" />
+            {t("cancel")}
+          </Button>
+        </div>
+        <InvoiceForm companySlug={companySlug} mode="edit" invoice={invoice} initialLines={lines} formData={formData} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -79,7 +93,7 @@ export function InvoiceDetailView({ companySlug, invoice, lines, parties, items,
             </Button>
             {invoice.status !== "cancelled" && (
               <>
-                <Button type="button" size="sm" onClick={() => setEditOpen(true)}>
+                <Button type="button" size="sm" onClick={() => setEditing(true)}>
                   <Pencil className="h-3.5 w-3.5" />
                   {t("edit")}
                 </Button>
@@ -175,26 +189,6 @@ export function InvoiceDetailView({ companySlug, invoice, lines, parties, items,
           )}
         </div>
       </div>
-
-      <Sheet open={editOpen} onClose={() => setEditOpen(false)} title={t("editSalesInvoice")}>
-        <InvoiceForm
-          companySlug={companySlug}
-          invoice={invoice}
-          lines={lines}
-          parties={parties}
-          items={items}
-          warehouses={warehouses}
-          bankAccounts={bankAccounts}
-          defaults={defaults}
-          onDone={(message, warning) => {
-            setEditOpen(false);
-            notify.success(t(message));
-            if (warning) notify.info(t(warning));
-            router.refresh();
-          }}
-          onClose={() => setEditOpen(false)}
-        />
-      </Sheet>
     </div>
   );
 }

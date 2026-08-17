@@ -3,15 +3,15 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getAuthenticatedAppContext } from "@/lib/auth/app-context";
 import { getServerT } from "@/lib/i18n-server";
-import { getSalesInvoiceDetail, getSalesInvoiceFormData } from "../actions";
-import { InvoiceDetailView } from "./invoice-detail-view";
+import { getCreditNoteDetail, getCreditNoteFormData } from "../actions";
+import CreditNoteDetailView from "./credit-note-detail-view";
 
 export const metadata = {
-  title: "Sales Invoice",
+  title: "Credit Note",
 };
 
-export default async function SalesInvoiceDetailPage({ params }) {
-  const { company, invoice } = await params;
+export default async function CreditNoteDetailPage({ params }) {
+  const { company, creditNote: creditNoteId } = await params;
   const context = await getAuthenticatedAppContext(company);
 
   if (!context.accessibleModules.includes("sales")) {
@@ -20,8 +20,8 @@ export default async function SalesInvoiceDetailPage({ params }) {
 
   const [t, detail, formData] = await Promise.all([
     getServerT(),
-    getSalesInvoiceDetail(company, invoice),
-    getSalesInvoiceFormData(company),
+    getCreditNoteDetail(company, creditNoteId),
+    getCreditNoteFormData(company),
   ]);
 
   if (!detail) {
@@ -31,13 +31,13 @@ export default async function SalesInvoiceDetailPage({ params }) {
   return (
     <div className="space-y-5">
       <Link
-        href={`/${company}/sales/invoices`}
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground print:hidden"
+        href={`/${company}/sales/credit-notes`}
+        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
-        {t("salesInvoices")}
+        {t("creditNotes")}
       </Link>
-      <InvoiceDetailView companySlug={company} invoice={detail.invoice} lines={detail.lines} formData={formData} />
+      <CreditNoteDetailView companySlug={company} creditNote={detail.creditNote} lines={detail.lines} formData={formData} />
     </div>
   );
 }
