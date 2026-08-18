@@ -39,6 +39,22 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-brand-600: var(--brand-600);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-border: var(--brand-border);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-receivable: var(--receivable);
+  --color-payable: var(--payable);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-raised: var(--surface-raised);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -121,6 +137,39 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.88 0 0);
   --sidebar-ring: #ffc928;
+
+  /* Brand hierarchy — see docs/SUVA_DESIGN_SYSTEM.md. --primary/--ring above
+     stay as the raw logo golds (never renamed, other files already depend on
+     them); these add the tiers the brand needs beyond "one flat yellow":
+     a darker interaction state, a near-invisible tint for large surfaces,
+     and a border tone that reads as "warm neutral" rather than "yellow". */
+  --brand-600: #c88917;
+  --brand-soft: oklch(0.97 0.03 85);
+  --brand-border: oklch(0.87 0.05 80);
+
+  /* Semantic ERP status colors — deliberately NOT reusing chart-1..5 (those
+     are brand-gold tones for data series) or raw Tailwind palette classes
+     scattered per-component. One definition, referenced by status-badge.jsx
+     and any KPI/panel that needs a semantic (not brand) accent. */
+  --success: oklch(0.6 0.13 155);
+  --success-foreground: oklch(0.985 0 0);
+  --success-soft: oklch(0.94 0.05 155);
+  --warning: oklch(0.62 0.14 60);
+  --warning-foreground: oklch(0.985 0 0);
+  --warning-soft: oklch(0.94 0.06 70);
+  --info: oklch(0.55 0.1 240);
+  --info-foreground: oklch(0.985 0 0);
+  --info-soft: oklch(0.94 0.03 240);
+
+  /* Signed-balance semantics (AGENTS.md §6: party ledger is signed, Dr/Cr) —
+     receivable and payable are intentionally distinct from success/warning:
+     a large receivable isn't "good news" the way a cleared invoice is, it's
+     just a fact the dashboard reports neutrally-but-legibly. */
+  --receivable: var(--info);
+  --payable: var(--warning);
+
+  --surface-subtle: oklch(0.97 0.002 80);
+  --surface-raised: oklch(1 0 0);
 }
 
 .dark {
@@ -155,85 +204,31 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: #ffc928;
+
+  --brand-600: #ffc928;
+  --brand-soft: oklch(0.32 0.04 85 / 40%);
+  --brand-border: oklch(0.4 0.05 80 / 50%);
+
+  /* Same hues as light mode, lifted in lightness/chroma so they stay
+     legible on dark surfaces instead of just being the light-mode value
+     dimmed — a plain invert would desaturate these into mud. */
+  --success: oklch(0.7 0.15 155);
+  --success-foreground: oklch(0.145 0 0);
+  --success-soft: oklch(0.32 0.05 155 / 40%);
+  --warning: oklch(0.72 0.15 65);
+  --warning-foreground: oklch(0.145 0 0);
+  --warning-soft: oklch(0.32 0.06 70 / 40%);
+  --info: oklch(0.72 0.1 240);
+  --info-foreground: oklch(0.145 0 0);
+  --info-soft: oklch(0.3 0.04 240 / 40%);
+
+  --receivable: var(--info);
+  --payable: var(--warning);
+
+  --surface-subtle: oklch(0.19 0 0);
+  --surface-raised: oklch(0.23 0 0);
 }
 
-.theme-wave-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(
-    circle at var(--theme-x, 50%) var(--theme-y, 50%),
-    rgba(247, 181, 0, 0.9) 0%,
-    rgba(247, 181, 0, 0.7) 10%,
-    rgba(247, 181, 0, 0.28) 18%,
-    rgba(247, 181, 0, 0.08) 28%,
-    rgba(255, 255, 255, 0) 52%
-  );
-}
-
-.theme-wave-overlay.active {
-  animation: themeWaveReveal 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.theme-wave-btn {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.theme-wave-btn::before {
-  content: "";
-  position: absolute;
-  inset: 50% auto auto 50%;
-  width: 8px;
-  height: 8px;
-  border-radius: 9999px;
-  transform: translate(-50%, -50%) scale(0.3);
-  opacity: 0;
-  background: radial-gradient(circle, rgba(247, 181, 0, 0.88), rgba(247, 181, 0, 0.2) 30%, transparent 70%);
-  box-shadow: 0 0 16px rgba(247, 181, 0, 0.55);
-  z-index: 0;
-}
-
-.theme-wave-btn.theme-wave-animating::before {
-  animation: themeWaveButton 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-@keyframes themeWaveButton {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.3);
-  }
-  15% {
-    opacity: 1;
-  }
-  55% {
-    opacity: 0.8;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(13);
-  }
-}
-
-@keyframes themeWaveReveal {
-  0% {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-  18% {
-    opacity: 1;
-  }
-  60% {
-    opacity: 0.9;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.5);
-  }
-}
 
 @layer base {
   * {

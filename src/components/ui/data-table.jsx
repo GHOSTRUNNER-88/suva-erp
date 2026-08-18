@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 // bespoke content instead of the standard icon+message+action shape.
 
 const VIRTUALIZE_THRESHOLD = 30;
-const DEFAULT_ROW_HEIGHT = 44;
+const DEFAULT_ROW_HEIGHT = 40;
 const SKELETON_ROW_COUNT = 8;
 const ACTION_BUTTON_SIZE = 32;
 const ACTION_BUTTON_GAP = 4;
@@ -83,7 +83,15 @@ export function DataTable({
   emptyState,
   emptyIcon,
   emptyMessage,
-  // { label, onClick, icon? } — icon defaults to Plus.
+  // Optional second line explaining what the page is for / what to do —
+  // keep emptyMessage short ("No sales orders yet") and put the "why/what
+  // next" sentence here, see redesign2.md's empty-state rule.
+  emptyDescription,
+  // { label, onClick, icon? } — icon defaults to Plus. Omit this when the
+  // page already has a PageHeader primary action for the same thing —
+  // repeating the identical button here is the exact duplication
+  // redesign2.md calls out; this prop stays for pages with no page-level
+  // action elsewhere.
   emptyAction,
   loading = false,
   onRowClick,
@@ -244,7 +252,7 @@ export function DataTable({
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder={searchPlaceholder ?? t("searchPlaceholder")}
-                className="h-9 w-full min-w-0 rounded-xl border border-transparent bg-muted/60 py-1 pr-8 pl-9 text-sm outline-none transition-colors placeholder:text-muted-foreground hover:bg-muted focus-visible:border-ring focus-visible:bg-background focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="h-9 w-full min-w-0 rounded-lg border border-transparent bg-muted/60 py-1 pr-8 pl-9 text-sm outline-none transition-colors placeholder:text-muted-foreground hover:bg-muted focus-visible:border-ring focus-visible:bg-background focus-visible:ring-3 focus-visible:ring-ring/50"
               />
               {searchQuery && (
                 <button
@@ -314,15 +322,16 @@ export function DataTable({
       </AnimatePresence>
 
       {isGenuinelyEmpty ? (
-        <div className="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-2.5 px-6 py-12 text-center">
           {emptyState ?? (
             <>
-              <div className="grid h-14 w-14 place-items-center rounded-full bg-muted/60">
-                {EmptyIcon ? <EmptyIcon className="h-6 w-6 opacity-50" /> : <Inbox className="h-6 w-6 opacity-50" />}
+              <div className="grid h-11 w-11 place-items-center rounded-xl bg-muted/60">
+                {EmptyIcon ? <EmptyIcon className="h-5 w-5 text-muted-foreground" /> : <Inbox className="h-5 w-5 text-muted-foreground" />}
               </div>
-              <p className="text-sm">{emptyMessage ?? t("noResults")}</p>
+              <p className="text-sm font-medium text-foreground">{emptyMessage ?? t("noResults")}</p>
+              {emptyDescription && <p className="max-w-sm text-xs text-muted-foreground">{emptyDescription}</p>}
               {emptyAction && (
-                <Button type="button" size="sm" onClick={emptyAction.onClick}>
+                <Button type="button" size="sm" className="mt-1" onClick={emptyAction.onClick}>
                   <EmptyActionIcon className="h-3.5 w-3.5" />
                   {emptyAction.label}
                 </Button>
@@ -348,7 +357,7 @@ export function DataTable({
               <div
                 key={column.key}
                 className={cn(
-                  "flex flex-1 min-w-0 items-center px-4 py-2.5 text-xs font-medium tracking-wide text-muted-foreground uppercase",
+                  "flex flex-1 min-w-0 items-center px-4 py-2.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase",
                   column.className
                 )}
               >
@@ -608,7 +617,7 @@ function TableFilterSelect({ filter, value, onChange, t }) {
         type="button"
         onClick={() => (open ? closePopover() : openPopover())}
         className={cn(
-          "flex h-9 items-center gap-1.5 rounded-xl border text-sm transition-colors",
+          "flex h-9 items-center gap-1.5 rounded-lg border text-sm transition-colors",
           selected ? "border-primary/30 bg-primary/8 pr-7 pl-3 text-foreground" : "border-transparent bg-muted/60 px-3 text-muted-foreground hover:bg-muted"
         )}
       >
@@ -635,7 +644,7 @@ function TableFilterSelect({ filter, value, onChange, t }) {
           <div
             ref={popoverRef}
             style={{ position: "fixed", top: position.top, left: position.left, width: position.width }}
-            className="z-50 rounded-xl border bg-popover p-1 shadow-lg"
+            className="z-50 rounded-lg border bg-popover p-1 shadow-lg"
           >
             <div className="relative mb-1">
               <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />

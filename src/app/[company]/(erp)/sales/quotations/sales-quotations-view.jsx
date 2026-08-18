@@ -6,20 +6,11 @@ import { useTranslation } from "react-i18next";
 import { Eye, FileText, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { notify } from "@/lib/toast";
-import { StatusBadge } from "../orders/sales-orders-view";
 import { deleteSalesQuotationsAction } from "./actions";
 
 const QUOTATION_STATUSES = ["draft", "sent", "accepted", "converted", "expired", "cancelled"];
-
-const STATUS_STYLES = {
-  draft: "bg-muted text-muted-foreground",
-  sent: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  accepted: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  converted: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  expired: "bg-amber-500/15 text-amber-700 dark:text-amber-500",
-  cancelled: "bg-destructive/10 text-destructive",
-};
 
 function formatAmount(value) {
   return Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -96,7 +87,7 @@ export default function SalesQuotationsView({ companySlug, initialQuotations }) 
     {
       key: "status",
       header: t("status"),
-      render: (quotation) => <StatusBadge status={quotation.status} styles={STATUS_STYLES} />,
+      render: (quotation) => <StatusBadge status={quotation.status} />,
     },
   ];
 

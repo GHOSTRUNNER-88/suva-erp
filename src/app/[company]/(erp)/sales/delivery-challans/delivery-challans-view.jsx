@@ -6,17 +6,11 @@ import { useTranslation } from "react-i18next";
 import { Eye, Plus, Trash2, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { notify } from "@/lib/toast";
-import { StatusBadge } from "../orders/sales-orders-view";
 import { deleteDeliveryChallansAction } from "./actions";
 
 const CHALLAN_STATUSES = ["pending", "delivered", "cancelled"];
-
-const STATUS_STYLES = {
-  pending: "bg-amber-500/15 text-amber-700 dark:text-amber-500",
-  delivered: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  cancelled: "bg-destructive/10 text-destructive",
-};
 
 // sourceId is an unenforced polymorphic reference (see actions.js) — purely
 // a display label here, resolved without assuming sales/invoices or
@@ -100,7 +94,7 @@ export default function DeliveryChallansView({ companySlug, initialChallans }) {
     {
       key: "status",
       header: t("status"),
-      render: (challan) => <StatusBadge status={challan.status} styles={STATUS_STYLES} />,
+      render: (challan) => <StatusBadge status={challan.status} />,
     },
   ];
 

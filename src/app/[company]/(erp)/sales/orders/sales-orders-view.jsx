@@ -3,34 +3,14 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { ClipboardList, Eye, Plus, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ClipboardList, Eye, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { formatMoney } from "@/lib/money-format";
 import { notify } from "@/lib/toast";
-import { cn } from "@/lib/utils";
 import { deleteSalesOrdersAction } from "./actions";
 
 const ORDER_STATUSES = ["draft", "confirmed", "converted", "cancelled"];
-
-const STATUS_STYLES = {
-  draft: "bg-muted text-muted-foreground",
-  confirmed: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  converted: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  cancelled: "bg-destructive/10 text-destructive",
-};
-
-export function StatusBadge({ status, styles }) {
-  const { t } = useTranslation();
-  return (
-    <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", styles[status] ?? "bg-muted text-muted-foreground")}>
-      {t(status)}
-    </span>
-  );
-}
-
-function formatAmount(value) {
-  return Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 /**
  * List shell for Sales Orders — unlike Warehouses/Parties/Items, the
@@ -38,16 +18,16 @@ function formatAmount(value) {
  * a Sheet: "Add" and row clicks navigate to full pages (new/[order]),
  * matching how Bank Accounts' ledger view gets its own route. Editing/
  * deleting/viewing all live in the Actions column.
+ *
+ * The page-level create action lives in page.js's <PageHeader> now, not
+ * here — this view doesn't render its own "Add" button anymore (see
+ * redesign2.md's "REMOVE DUPLICATE PRIMARY ACTIONS").
  */
 export default function SalesOrdersView({ companySlug, initialOrders }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [deleting, startDeleteTransition] = useTransition();
-
-  function openNew() {
-    router.push(`/${companySlug}/sales/orders/new`);
-  }
 
   function openDetail(order) {
     router.push(`/${companySlug}/sales/orders/${order.id}`);
@@ -99,13 +79,14 @@ export default function SalesOrdersView({ companySlug, initialOrders }) {
       key: "totalAmount",
       header: t("totalAmount"),
       sortable: true,
-      className: "flex-none w-32 justify-end text-right",
-      render: (order) => formatAmount(order.totalAmount),
+      className: "flex-none w-36 justify-end text-right tabular-nums",
+      render: (order) => formatMoney(order.totalAmount),
     },
     {
       key: "status",
       header: t("status"),
-      render: (order) => <StatusBadge status={order.status} styles={STATUS_STYLES} />,
+      className: "flex-none w-32",
+      render: (order) => <StatusBadge status={order.status} />,
     },
   ];
 
@@ -133,35 +114,24 @@ export default function SalesOrdersView({ companySlug, initialOrders }) {
   ];
 
   return (
-    <>
-      <div className="flex justify-end">
-        <Button type="button" onClick={openNew}>
-          <Plus className="h-4 w-4" />
-          {t("addSalesOrder")}
-        </Button>
-      </div>
-
-      <div className="mt-4">
-        <DataTable
-          columns={columns}
-          rows={initialOrders}
-          selectedIds={selectedIds}
-          onSelectionChange={setSelectedIds}
-          onRowClick={openDetail}
-          rowActions={rowActions}
-          bulkActions={bulkActions}
-          filters={[
-            {
-              key: "status",
-              label: t("status"),
-              options: ORDER_STATUSES.map((status) => ({ value: status, label: t(status) })),
-            },
-          ]}
-          emptyIcon={ClipboardList}
-          emptyMessage={t("noSalesOrdersYet")}
-          emptyAction={{ label: t("addSalesOrder"), onClick: openNew }}
-        />
-      </div>
-    </>
+    <DataTable
+      columns={columns}
+      rows={initialOrders}
+      selectedIds={selectedIds}
+      onSelectionChange={setSelectedIds}
+      onRowClick={openDetail}
+      rowActions={rowActions}
+      bulkActions={bulkActions}
+      filters={[
+        {
+          key: "status",
+          label: t("status"),
+          options: ORDER_STATUSES.map((status) => ({ value: status, label: t(status) })),
+        },
+      ]}
+      emptyIcon={ClipboardList}
+      emptyMessage={t("noSalesOrdersYet")}
+      emptyDescription={t("salesOrdersEmptyHint")}
+    />
   );
 }
